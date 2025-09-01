@@ -14,6 +14,7 @@ dependencies = [
     "chainlit>=2.7.2",
     "langchain>=0.3.27",
     "openai>=1.102.0",
+    "openai-agents>=0.2.10",
     "opentelemetry-api>=1.36.0",
     "opentelemetry-sdk>=1.36.0",
     "requests>=2.32.5",

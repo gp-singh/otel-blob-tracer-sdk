@@ -1,27 +1,52 @@
-from langchain.chat_models import ChatOpenAI
-from langchain.agents import Tool, initialize_agent, AgentType
-from langchain.tools import tool
-import requests
-from bs4 import BeautifulSoup
+import os
+import asyncio
+from openai import AsyncAzureOpenAI
+from openai import OpenAIError
+from agents import Agent, Runner, OpenAIChatCompletionsModel, set_tracing_disabled
 
-llm = ChatOpenAI(temperature=0.3, model="gpt-4")
+import chainlit as cl
 
-@tool
-def search_web(query: str) -> str:
-    """Perform a web search and return brief result text."""
-    url = f"https://www.google.com/search?q={query}"
-    return f"Simulated search result for: {query}"  # Replace with actual scraping logic
+# Disable tracing since we're using Azure OpenAI
+set_tracing_disabled(disabled=True)
 
-@tool
-def summarize_text(text: str) -> str:
-    """Summarize long text into key points."""
-    return llm.predict(f"Summarize: {text}")
+deployment = "gpt-4o"
 
-@tool
-def plan_actions(context: str) -> str:
-    """Based on the findings, plan next steps."""
-    return llm.predict(f"What should we do next based on this context: {context}")
 
-# Create a basic tool-based agent
-tools = [search_web, summarize_text, plan_actions]
-multi_agent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION)
+async def main():
+    try:
+        # Create the Async Azure OpenAI client
+        client = AsyncAzureOpenAI(
+            api_key=os.getenv("AZURE_OPENAI_KEY"),
+            api_version="2023-09-01-preview",
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+        )
+
+        # Configure the agent with Azure OpenAI
+        agent = Agent(
+            name="Assistant",
+            instructions="You are a helpful assistant",
+            model=OpenAIChatCompletionsModel(
+                model=deployment,
+                openai_client=client,
+            )
+        )
+
+        handle_message(agent, cl.Message(content="Write a haiku about recursion in programming."))
+        #result = await Runner.run(agent, "Write a haiku about recursion in programming.")
+        #print(result.final_output)
+
+    except OpenAIError as e:
+        print(f"OpenAI API Error: {str(e)}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {str(e)}")
+
+@cl.on_message
+async def handle_message(agent: Agent, message: cl.Message):
+    query = message.content
+    cl.user_session.set("query", query)
+
+    result = Runner.run(agent, "Write a haiku about recursion in programming.")
+    await cl.Message(content=f" Here's the respone: \n {result}").send()
+
+if __name__ == "__main__":
+    asyncio.run(main())
