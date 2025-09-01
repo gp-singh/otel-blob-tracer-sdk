@@ -4,12 +4,7 @@ import chainlit as cl
 import os
 
 
-AZURE_OPENAI_ENDPOINT = "https://az-oai-gp.openai.azure.com/"
-AZURE_OPENAI_API_KEY = "6hyV7Ue8Dw3V4w2Ier9qCc4Y6ITivK2kDK2YKmONiY8hwYWX5sgJQQJ99ALAC4f1cMXJ3w3AAABACOGoVMP"
-AZURE_OPENAI_API_VERSION = "2025-01-01-preview"
-AZURE_OPENAI_DEPLOYMENT = "o4-mini"
-AZURE_OPENAI_DEPLOYMENT_ENDPOINT = "https://az-oai-gp.openai.azure.com/openai/deployments/o4-mini/chat/completions?api-version=2025-01-01-preview"
-AZURE_INFERENCE_ENDPOINT = "https://az-oai-gp.services.ai.azure.com/openai/v1"
+
 
 
 # Disable tracing since we're using Azure OpenAI
@@ -42,7 +37,10 @@ agent = Agent(
 async def main(message: cl.Message):
     # Your custom logic goes here...
 
+    response = Runner.run_sync(agent, message.content)
+    
+
     # Send a response back to the user
     await cl.Message(
-        content=f"Received: {message.content}",
+        content=f"Received: {response.content}",
     ).send()
